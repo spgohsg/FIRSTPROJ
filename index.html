@@ -250,17 +250,26 @@
                           "• Upper (上卦): " + upperTri.cn + " | " + upperTri.en + "<br>" +
                           "• Lower (下卦): " + lowerTri.cn + " | " + lowerTri.en + "</p>" +
                           "<p><strong>Wisdom Analysis / 占卜解读:</strong><br>" +
-                          "中文: 此卦象由外在的「" + upperTri.power.split(" / ")[0] + "」与内在的「" + lowerTri.power.split(" / ")[0] + "」交互作用而成。事态发展正在经历内外能量的契合流转。保持本心，顺应天道发展。<br><br>" +
-"English: This oracle dynamic shows outer conditions of [" + upperTri.power + "] meeting your inner foundation of [" + lowerTri.power + "]. Carefully balance environmental shifts with your internal stance. Do not rush paths forward.";
+                          "中文: 此卦象由外在的「" + upperTri.power + "」与内在的「" + lowerTri.power + "」交互作用而成。事态发展正在经历内外能量的契合流转。保持本心，顺应天道发展。<br><br>" +
+                          "English: This oracle dynamic shows outer conditions of [" + upperTri.power + "] meeting your inner foundation of [" + lowerTri.power + "]. Carefully balance environmental shifts with your internal stance. Do not rush paths forward.</p>";
+
         interpretationBox.innerHTML = htmlContent;
-        interpretationBox.classList.remove('hidden');}
+        interpretationBox.classList.remove('hidden');
+    }
 
-function resetOracle() {currentToss = 0;hexagramLines = [];
-                        document.getElementById('hexagramArea').innerHTML = "";
-                        document.getElementById('interpretation').classList.add('hidden');
-                        document.getElementById('decipherSection').classList.add('hidden');
-                        document.getElementById('coinArea').classList.remove('hidden');
-                        document.getElementById('tossCounter').innerText = "Toss 1 of 6 ｜ 第 1 次投掷";document.getElementById('tossResultText').innerText = "Coins ready for casting. ｜ 准备就绪。";}
+    function resetOracle() {
+        currentToss = 0;
+        hexagramLines = [];
+        document.getElementById('hexagramArea').innerHTML = "";
+        document.getElementById('interpretation').classList.add('hidden');
+        document.getElementById('decipherSection').classList.add('hidden');
+        document.getElementById('coinArea').classList.remove('hidden');
+        document.getElementById('tossCounter').innerText = "Toss 1 of 6 ｜ 第 1 次投掷";
+        document.getElementById('tossResultText').innerText = "Coins ready for casting. ｜ 准备就绪。";
+    }
+</script>
 
+</body>
+</html>
 
             

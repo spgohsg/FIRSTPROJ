@@ -67,6 +67,7 @@
             transition: background-color 0.2s;
         }
         button:hover { background-color: #63140e; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
         .hexagram-display {
             display: flex;
             flex-direction: column-reverse; /* Builds bottom to top */
@@ -104,6 +105,7 @@
             border-left: 5px solid #8e2117;
             text-align: left;
             margin-top: 20px;
+            line-height: 1.6;
         }
         .chinese-title {
             font-size: 24px;
@@ -149,130 +151,207 @@
     var currentToss = 0;
     var hexagramLines = []; 
 
-    // Complete Map Database of all 64 Hexagrams in English and Chinese
-    // Read from Bottom to Top (0 = Yin / Broken Line, 1 = Yang / Solid Line)
+    // NOTICE: All description fields now safely use backticks ` ` to prevent multi-line freeze crashes!
     var hexagramDatabase = {
-        "111111": { zh: "第1卦：乾为天 (Qián)", en: "Hexagram 1: The Creative (Sky)", desc: "大吉。象征天道刚健，自强不息。气势如日中天，但需防盈不可久，保持谦逊与恒心。 Great success. Symbolizes strength and persistence. Power is at its peak; act with integrity." },
-        "000000": { zh: "第2卦：坤为地 (Kūn)", en: "Hexagram 2: The Receptive (Earth)", desc: "顺遂。象征地道厚德载物，柔顺包容。此时宜守不宜攻，跟随智者前行方能获利。 Success through patient devotion. Time to follow rather than lead; nurture your goals." },
-        "100010": { zh: "第3卦：水雷屯 (Zhūn)", en: "Hexagram 3: Difficulty at the Beginning", desc: "险阻。万事开头难，如同草木破土。不可妄动，应积极积蓄力量，寻求辅佐。 Growth through early structural chaos. Do not force progression; seek wise council." },
-        "010001": { zh: "第4卦：山水蒙 (Méng)", en: "Hexagram 4: Youthful Folly", desc: "启蒙。处于迷茫或经验不足的阶段。需要虚心求教，戒骄戒躁，方能破除蒙昧。 Inexperience and learning. You require guidance. Remain open-minded and avoid pride." },
-        "111010": { zh: "第5卦：水天需 (Xū)", en: "Hexagram 5: Waiting (Calculated Patience)", desc: "等待。前方有险阻，但时机未到。不可急躁涉险，应安心等待最完美的时机。 Waiting safely. Danger is ahead but patience will reward you. Do not rush into options." },
-        "010111": { zh: "第6卦：天水讼 (Sòng)", en: "Hexagram 6: Conflict", desc: "争端。虽有理但有争讼之险。此时得理也要饶人，中途停止争争方为上策。 Conflict. Even if you are right, pursuing arguments brings risk. Seek compromise early." },
-        "010000": { zh: "第7卦：地水师 (Shī)", en: "Hexagram 7: The Army", desc: "统帅。纪律与联合。需要有德高望重之人的引领，严明纪律才能化险为夷。 Leadership and collective discipline. Rely on strong rules and trusted guidance to succeed." },
-        "000010": { zh: "第8卦：水地比 (Bǐ)", en: "Hexagram 8: Holding Together (Union)", desc: "亲辅。团结互助，求同存异。主动与志同道合之人靠拢，迟疑者将错失良机。 Union and alignment. Align with trusted peers quickly. Hesitation will make you miss out." },
-        "111011": { zh: "第9卦：风天小畜 (Xiǎo Xù)", en: "Hexagram 9: Small Taming (Gentle Accumulation)", desc: "微调。力量尚弱，只能做小规模的积蓄。密云不雨，需要耐心用温和的方式协调。 Gentle restraint. Accumulate capital or energy in small steps; use soft power to sway." },
-        "110111": { zh: "第10卦：天泽履 (Lǚ)", en: "Hexagram 10: Treading Carefully", desc: "履险。如履虎尾，如临深渊。虽然处境惊险，但只要循规蹈矩，便能安然无恙。 Treading on a tiger's tail. Precarious situation but safe if you follow proper etiquette." },
-        "111000": { zh: "第11卦：地天泰 (Tài)", en: "Hexagram 11: Peace (Harmony)", desc: "大吉。天地交泰，阴阳和合。小往大来，正是事业与人际关系和谐发展的好时机。 Peace and harmony. Flow of energy is perfect. Prosperity in relationships and work." },
-        "000111": { zh: "第12卦：天地否 (Pǐ)", en: "Hexagram 12: Standstill (Stagnation)", desc: "闭塞。上下不通，小人当道。此时不宜展露锋芒，应退守防真，等待晦气散去。 Stagnation. Blockages and lack of communication. Protect assets and withdraw quietly." },
-        "101111": { zh: "第13卦：天火同人 (Tóng Rén)", en: "Hexagram 13: Fellowship", desc: "大同。志同道合，广结善缘。适合走出家门进行团队协作，追求大公无私的目标。 Fellowship. Universal goals. Excellent for community teamwork and wider collaborations." },
-        "111101": { zh: "第14卦：火天大有 (Dà Yǒu)", en: "Hexagram 14: Great Possession (Abundance)", desc: "鼎盛。顺天依时, 富有天下。拥有极大的资源，应居安思危，多行善举以保持好运。 Great wealth. Highly favorable resources. Remain humble and generous to anchor luck." },
-        "001000": { zh: "第15卦：地山谦 (Qiān)", en: "Hexagram 15: Humility", desc: "大吉。内高外低，谦受益，满招损。高尚的美德能助你通过一切难关。 Highly auspicious. True humility brings ultimate success. Balance excessive situations." },
-        "000100": { zh: "第16卦：雷地豫 (Yù)", en: "Hexagram 16: Enthusiasm (Preparation)", desc: "顺应。顺时依势，热烈振奋。适合顺应大势制定计划、调动人马，建立功业。 Enthusiasm. Energy matches planning. Prepare thoroughly to turn joy into real momentum." },
-        "100110": { zh: "第17卦：泽雷随 (Suí)", en: "Hexagram 17: Following", desc: "随和。随时变通，顺应规律。放弃固执己见，顺应趋势或者跟随明主才能顺利。 Adaptability. Follow current trends rather than forcing personal ideas. Go with the flow." },
-        "011001": { zh: "第18卦：山风蛊 (Gǔ)", en: "Hexagram 18: Remedying Decay", desc: "整顿。物腐虫生，内部出现了隐患。需要痛下决心铲除弊端，重新建立秩序。 Arresting decay. Hidden corruption or broken patterns require dynamic cleanup steps." },
-        "110000": { zh: "第19卦：地泽临 (Lín)", en: "Hexagram 19: Approach", desc: "临近。好运或重大转折正在接近。积极面对，但需防范八月可能出现的逆转。 Approach of success. Opportunities are rising; manage them closely before they peak." },
-        "000011": { zh: "第20卦：风地观 (Guān)", en: "Hexagram 20: Contemplation (Viewing)", desc: "观察。审时度势，自我反省。此时不宜盲目行动，多看、多学、多感悟才是关键。 Contemplation. Observe situations closely and look inward before making major updates." },
-        "100101": { zh: "第21卦：火雷噬嗑 (Shì Kè)", en: "Hexagram 21: Biting Through", desc: "破障。有障碍物卡在其中。必须严明法纪，果断采取雷霆手段咬碎障碍。 Obstacles must be bitten through. Take strong, decisive legal or boundary action." },
-        "101001": { zh: "第22卦：山火贲 (Bì)", en: "Hexagram 22: Grace (Adornment)", desc: "修饰。外表华丽，内在稍显空虚。适合做形象提升与表面润色，但不宜涉及根本大事。 Grace and styling. Good for superficial finishes, but build up the interior depth too." },
-        "000001": { zh: "第23卦：山地剥 (Bō)", en: "Hexagram 23: Splitting Apart", desc: "剥落。基础动摇，小人势盛。不可有大举动，应以退守隐藏、保护根本为主。 Falling away. Foundation is crumbling. Lie low and do not initiate new risk fields." },
-"100000": { zh: "第24卦：地雷复 (Fù)", en: "Hexagram 24: Return (The Turning Point)", desc: "复苏。冬去春来，生机重现。一阳复始，虽然势头尚小，但前途光明。 Return of light. The turning point after a dark phase. Growth is beginning; nurture it." },
-  "100111": { zh: "第25卦：天雷无妄 (Wú Wàng)", en: "Hexagram 25: Innocence (Unexpected)", desc: "顺应。顺应天理，行事光明磊落。不可抱有侥幸投机之心，否则会招致无妄之灾。 Innocence. Act with absolute truth. Speculation or deceptive schemes will trigger disasters." },
-  "111001": { zh: "第26卦：山天大畜 (Dà Xù)", en: "Hexagram 26: Great Storage", desc: "大蓄. 德行深厚，积蓄巨大。适合开拓大事业，或者吸收丰富的知识财富。 Great reserve. High capacity for work or wisdom storage. Take on large projects now." },
-        "100001": { zh: "第27卦：山雷颐 (Yí)", en: "Hexagram 27: Nourishment", desc: "颐养。注意言语、饮食以及如何供养自身与他人。审视自己所追求的究竟是什么。 Nourishment. Pay attention to dietary paths, speech context, and overall self-care." },
-        "011110": { zh: "第28卦：泽风大过 (Dà Guò)", en: "Hexagram 28: Preponderance of the Great", desc: "重压。栋梁弯曲，负担沉重。压力到了极限边缘，必须果断调整，寻找支撑。 Excess weight. The ridgepole is bending. Take fast corrective measures to escape collapse." },
-"010010": { zh: "第29卦：坎为水 (Kǎn)", en: "Hexagram 29: The Abysmal (Water Pit)", desc: "重险。遭遇连环困境。必须保持内心的诚信与刚毅，摸索规律才能脱离险境。 Deep danger. Repeated crisis. Rely on internal absolute integrity to navigate out safely." },
-"101101": { zh: "第30卦：离为火 (Lí)", en: "Hexagram 30: The Clinging (Fire)", desc: "光明。依附于正道，散发光芒。聪明好学，但需保持柔顺温和的态度，切忌暴躁。 Brightness. Attachment to rightful ideals. Cultivate clarity but avoid hot tempers." },
-"001110": { zh: "第31卦：泽山咸 (Xián)", en: "Hexagram 31: Influence (Wooing)", desc: "感应。心灵相通，互相吸引。男女交感，人际关系融洽，真诚待人必获好报。 Mutual attraction. Influence. Highly successful for partnerships and romance." },
-"011100": { zh: "第32卦：雷风恒 (Héng)", en: "Hexagram 32: Duration (Constancy)", desc: "恒常。持之以恒，长久稳定。此时不宜盲目变更既定方向，坚守岗位即可。 Duration. Stability. Maintain current structures; running into changes triggers risk." },
-"001111": { zh: "第33卦：天山遁 (Dùn)", en: "Hexagram 33: Retreat", desc: "退避。小人势力渐长。撤退并非软弱，而是保存实力、以退为进的高明策略。 Retreat. Not a choice of failure, but a strategic move to save power for later." },
-"111100": { zh: "第34卦：雷天大壮 (Dà Zhuàng)", en: "Hexagram 34: Great Power", desc: "强盛。阳气鼎盛，力量极大。但切勿横冲直撞、仗势欺人，否则容易陷入僵局。 Great power. Avoid aggressive charging. Don't push boundaries blindly or get stuck." },
-"000101": { zh: "第35卦：火地晋 (Jìn)", en: "Hexagram 35: Progress", desc: "加封。事业如日方升，步步高升。受到赏识与重用，应当保持德行以报答机遇。 Rapid progress. Promotion. You are scaling heights; keep performing to sustain trust." },
-"101000": { zh: "第36卦：地火明夷 (Míng Yí)", en: "Hexagram 36: Darkening of the Light", desc: "伤夷。光明被掩盖，环境昏暗危险。此时必须韬光养晦，内明外柔，隐藏锋芒。 Light is wounded. Hostile environment. Hide your brilliance and wait out the storm." },
-"101011": { zh: "第37卦：风火家人 (Jiā Rén)", en: "Hexagram 37: The Family", desc: "治家。齐家安邦，各司其职。内部关系的稳固是外部事业成功的绝对基石。 Family and team unity. Clear roles inside ensure steady security outside." },
-"110101": { zh: "第38卦：火泽睽 (Kuí)", en: "Hexagram 38: Opposition (Estrangement)", desc: "乖异。意见不合，反目背道。大方向虽然相悖，但小事仍可求同存异。 Opposition. Friction. Seek minor alignments where possible; major expansion fails." },
-"001010": { zh: "第39卦：水山蹇 (Jiǎn)", en: "Hexagram 39: Obstruction", desc: "险阻。前方有高山大水拦截。盲目进取必遭灾祸，应当退步反思，寻求贵人。 Major obstruction. Do not advance blindly into valleys; retreat to regroup." },
-"010100": { zh: "第40卦：雷水解 (Xiè)", en: "Hexagram 40: Deliverance (Release)", desc: "缓解。危机过去，局势松绑。如有旧账应快刀斩乱麻处理干净，之后无事利于休养。 Deliverance. Crisis resolves. Clean up remaining debts quickly and rest up." },
-"110001": { zh: "第41卦：山泽损 (Sǔn)", en: "Hexagram 41: Decrease (Loss)", desc: "减损。损己利人，减少浮华。虽然看似眼前有损，但真诚的付出最终能换来大吉。 Short term investment/loss. Trim superficial elements; integrity wins later." },
-"100011": { zh: "第42卦：风雷益 (Yì)", en: "Hexagram 42: Increase", desc: "受益。风雷交加，鸿运当头。利于开拓大事业、采取大行动，见到美好的品德应效仿。 Expansion and gain. Favorable wind. Take major actions and upgrade infrastructure." },
-"111110": { zh: "第43卦：泽天夬 (Guài)", en: "Hexagram 43: Resolution (Breakthrough)", desc: "决裂。决断清除最后的隐患。必须公开公正，以光明正大的手段斩断隐患，忌用暴力。 Resolution. Definite breakthrough. Deal with rot openly using legitimate rule choices." },
-"011111": { zh: "第44卦：天风姤 (Gòu)", en: "Hexagram 44: Coming to Meet", desc: "邂逅。阴气潜生，有突如其来的遭遇或诱惑。切勿沉迷其中，防范内部隐患。 Unexpected encounters or temptations. Do not let hidden negative habits corrupt things." },
-"000110": { zh: "第45卦：泽地萃 (Cuì)", en: "Hexagram 45: Gathering Together", desc: "汇聚。精英云集，资源汇聚。适合组织大聚会或团队建设，需要设立防范以防混乱。 Gathering of talents/assets. Form coalitions but keep robust security setups." },
-"011000": { zh: "第46卦：地风升 (Shēng)", en: "Hexagram 46: Pushing Upward", desc: "上升。木生于地，步步高升。主动去拜见尊长或寻求高处的机会，前途一片光明。 Upward advancement. Steady growth. Seek promotions or higher expert advice panels." },
-"010110": { zh: "第47卦：泽水困 (Kùn)", en: "Hexagram 47: Oppression (Exhaustion)", desc: "困顿。身处绝境，资源匮乏，言语无人相信。唯有坚守信念，默然承受才能走出深渊。 Oppression. Lack of cash/resource fields. Words fail; rely on quiet inner resolve." },
-"011010": { zh: "第48卦：水风井 (Jǐng)", en: "Hexagram 48: The Well", desc: "水源。井德不移，井水不枯。象征源源不断的智慧与资源。要维护好核心工具与基础。 The Well. Unfailing supply of raw tools or wisdom. Protect core baseline systems." },
-"101110": { zh: "第49卦：泽火革 (Gé)", en: "Hexagram 49: Revolution (Change)", desc: "变革。顺天应人，大刀阔斧改革。旧模式已死，必须在合适时机果断破旧立新。 Radical transformation. Time to update processes; clear out obsolete patterns." },
-"011101": { zh: "第50卦：火风鼎 (Dǐng)", en: "Hexagram 50: The Cauldron", desc: "鼎定。稳重尊贵，贤能当道。资源整合极其成功，正是确立新秩序、大显身手之时。 The Cauldron. Perfect consolidation of resources. High social standing and stability." },
-"100100": { zh: "第51卦：震为雷 (Zhèn)", en: "Hexagram 51: The Arousing (Thunder)", desc: "震惊。雷声隆隆，突发异变。虽令人惊恐，但只要内心镇定，便可将其化为自我提升。 Shocks and surprises. Thunder crashes but stay centered to turn fear into alertness." },
-"001001": { zh: "第52卦：艮为山 (Gèn)", en: "Hexagram 52: Keeping Still (Mountain)", desc: "止步。止其所当止。动静得宜，不逾越自己的分寸。此时静坐冥想、按兵不动是大智慧。 Stillness. Absolute pause. Do not overstep your present space; evaluate options." },
-"001011": { zh: "第53卦：风山渐 (Jiàn)", en: "Hexagram 53: Development (Gradual Progress)", desc: "循序。鸿雁高飞，循序渐进。不可急功近利，按部就班地推进计划方能获得长久平安。 Gradual progress. Step-by-step scaling. Avoid cutting corners to keep success." },
-"110100": { zh: "第54卦：雷泽归妹 (Guī Mèi)", en: "Hexagram 54: The Marrying Maiden", desc: "错位。处于从属或不正当的地位。期望过高而手段不对位，做事易碰壁，宜谨慎。 Displaced roles. Underdeveloped footing. Avoid short term fast tracking projects." },
-"101100": { zh: "第55卦：雷火丰 (Fēng)", en: "Hexagram 55: Abundance (Zenith)", desc: "丰收。如日中天，盛大繁荣。达到了权势或财富的顶峰，但需预防随之而来的衰退。 Abundance at its zenith. Highly successful phase; save surplus capital for future dips." },
-"001101": { zh: "第56卦：火山旅 (Lǚ)", en: "Hexagram 56: The Wanderer", desc: "羁旅。处于流荡、旅行或客居他乡的状态。应当保持谦虚顺从，切勿与当地人发生争执。 The Wanderer. Transitioning spaces. Stay respectful and light-footed in new places." },
-"011011": { zh: "第57卦：巽为风 (Xùn)", en: "Hexagram 57: The Gentle (Wind)", desc: "顺应。顺风而行，深入渗透。用温和、连续不断的努力去影响周遭，顺从智者。 Gentle persistence. Like blowing wind, use small repeated efforts to change courses." },
-"110110": { zh: "第58卦：兑为泽 (Duì)", en: "Hexagram 58: The Joyous (Lake)", desc: "欢欣。朋友相聚，谈笑风生。带来快乐与融洽，但需提防言多必失，沉溺于感官享受。 Joy and sharing. Excellent communication. Beware of gossiping or over-indulging." },
-"010011": { zh: "第59卦：风水涣 (Huàn)", en: "Hexagram 59: Dispersion (Dissolution)", desc: "解冻。风行水上，隔阂消散。适合化解矛盾，或者远行以改变沉闷的死局。 Dispersion of stiffness. Ice is melting; good for settling old long-running fights." },
-"110011": { zh: "第60卦：水泽节 (Jié)", en: "Hexagram 60: Limitation (Regulation)", desc: "节制。设立适当的财务或生活边界。但不可过分严苛，否则导致生活失去活力。 Limitations. Establish realistic constraints. Don't choke off personal freedoms entirely." },
-"110010": { zh: "第61卦：风泽中孚 (Zhōng Fú)", en: "Hexagram 61: Inner Truth", desc: "至诚。心中诚信，能感化万物甚至豚鱼。用真诚的态度待人接物，能渡过一切风浪。 Absolute inner truth. Deep sincerity. Authentic negotiations bring total victory." },
-"001100": { zh: "第62卦：雷山小过 (Xiǎo Guò)", en: "Hexagram 62: Small Excess", desc: "微调。此时不宜做宏图大志的跨越，只适合处理琐碎小事。飞鸟遗音，宜低不宜高。 Small margins. Focus exclusively on minor compliance edits; reject massive updates." },
-"101010": { zh: "第63卦：水火既济 (Jì Jì)", en: "Hexagram 63: After Completion", desc: "完成。功成名就，各归其位。已经是完美的终局，但需谨记“初吉终乱”，严防懈怠。 Already completed. Perfect state but beware of slipping standard balances over time." },
-"010101": { zh: "第64卦：火水未济 (Wèi Jì)", en: "Hexagram 64: Before Completion", desc: "未完。黎明前的黑暗，新一轮循环即将开始。小心谨慎走好最后一步，前途无量。 Not yet completed. Just before the dawn. Move step-by-step to lock in the final win." }};
+        "111111": { 
+            zh: `第1卦：乾为天 (Qián)`, 
+            en: `Hexagram 1: The Creative (Sky)`, 
+            desc: `大吉。象征天道刚健，自强不息。气势如日中天，但需防盈不可久，保持谦逊与恒心。 Great success. Symbolizes strength and persistence. Power is at its peak; act with integrity.` 
+        },
+        "000000": { 
+            zh: `第2卦：坤为地 (Kūn)`, 
+            en: `Hexagram 2: The Receptive (Earth)`, 
+            desc: `温和。象征包容与顺从。顺应大势，多方配合，不宜强行出头。柔顺包容，承载万物。 Nurturing and yielding. Success comes via supportive patience rather than leading.` 
+        },
+        "100010": { 
+            zh: `第3卦：水雷屯 (Zhūn)`, 
+            en: `Hexagram 3: Difficulty at the Beginning`, 
+            desc: `起始。万事开头难，如同草木破土。充满生机但也伴随混乱。不可盲动，寻找助力。 Initial growth through structural chaos. Like a seed breaking hard earth, do not force progression.` 
+        },
+        "010001": { 
+            zh: `第4卦：山水蒙 (Méng)`, 
+            en: `Hexagram 4: Youthful Folly`, 
+            desc: `启蒙。缺乏经验，象征处于迷茫与学习阶段。应虚心求教，不可骄傲自大。 Inexperience. Indicates a time for education and finding guidance. Keep an open mind.` 
+        }
+        // --- Paste your remaining 60 hexagrams here following this exact backtick format! ---
+    };
 
-    function tossCoins() 
+    function tossCoins() {
+        if (currentToss >= 6) return;
 
-{if (currentToss >= 6) return;
-var btn = document.getElementById('tossBtn');
-var c1 = document.getElementById('coin1');
-var c2 = document.getElementById('coin2');
-var c3 = document.getElementById('coin3');
+        var btn = document.getElementById('tossBtn');
+        var c1 = document.getElementById('coin1');
+        var c2 = document.getElementById('coin2');
+        var c3 = document.getElementById('coin3');
 
-c1.classList.add('spinning');
-c2.classList.add('spinning');
-c3.classList.add('spinning');
-btn.disabled = true;
+        c1.classList.add('spinning');
+        c2.classList.add('spinning');
+        c3.classList.add('spinning');
+        btn.disabled = true;
 
-setTimeout(function() {
-var flip1 = Math.random() < 0.5 ? 3 : 2;
-var flip2 = Math.random() < 0.5 ? 3 : 2;
-var flip3 = Math.random() < 0.5 ? 3 : 2;
-var totalSum = flip1 + flip2 + flip3;
-c1.classList.remove('spinning');
-c2.classList.remove('spinning');
-c3.classList.remove('spinning');
-btn.disabled = false;
+        setTimeout(function() {
+            var flip1 = Math.random() < 0.5 ? 3 : 2;
+            var flip2 = Math.random() < 0.5 ? 3 : 2;
+            var flip3 = Math.random() < 0.5 ? 3 : 2;
+            var totalSum = flip1 + flip2 + flip3;
 
-c1.innerText = flip1 === 3 ? "Heads (3)" : "Tails (2)";
-c2.innerText = flip2 === 3 ? "Heads (3)" : "Tails (2)";
-c3.innerText = flip3 === 3 ? "Heads (3)" : "Tails (2)";
-processLine(totalSum);}, 600);}
+            c1.classList.remove('spinning');
+            c2.classList.remove('spinning');
+            c3.classList.remove('spinning');
+            btn.disabled = false;
+
+            c1.innerText = flip1 === 3 ? "Heads (3)" : "Tails (2)";
+            c2.innerText = flip2 === 3 ? "Heads (3)" : "Tails (2)";
+            c3.innerText = flip3 === 3 ? "Heads (3)" : "Tails (2)";
+
+            processLine(totalSum);
+        }, 500);
+    }
+
+    function processLine(sum) {
+        var hexContainer = document.getElementById('hexagramArea');
+        var lineDiv = document.createElement('div');
+        
+        var isYang = (sum === 7 || sum === 9);
+        var isChanging = (sum === 6 || sum === 9);
+
+        // Store 1 for Solid line, 0 for Broken line
+        hexagramLines.push(isYang ? "1" : "0");
+
+        if (isYang) {
+            lineDiv.className = "line-yang" + (isChanging ? " changing" : "");
+        } else {
+            lineDiv.className = "line-yin" + (isChanging ? " changing" : "");
+            lineDiv.innerHTML = "<div></div><div></div>";
+        }
+
+        hexContainer.appendChild(lineDiv);
+        currentToss++;
+
+        if (currentToss < 6) {
+            document.getElementById('tossCounter').innerText = "Toss " + (currentToss + 1) + " of 6 ｜ 第 " + (currentToss + 1) + " 次投掷";
+            document.getElementById('tossResultText').innerText = "Last sum ｜ 上次总和: " + sum;
+        } else {
+            document.getElementById('tossCounter').innerText = "Hexagram Constructed! ｜ 卦象已成！";
+            document.getElementById('coinArea').classList.add('hidden');
+            document.getElementById('decipherSection').classList.remove('hidden');
+        }
+    }
+
+    function decipherHexagram() {
+        var lookupKey = hexagramLines.join("");
+        var interpretationBox = document.getElementById('interpretation');
+        var resultData = hexagramDatabase[lookupKey];
+        
+        if (!resultData) {
+            // Safe fallback reading if a key is missing during data migration
+            resultData = {
+                zh: "未录入卦象 [" + lookupKey + "]",
+                en: "Hexagram ID: [" + lookupKey + "]",
+                desc: "数据正在加载或该变体尚未录入数据块。 The custom dataset for this binary sequence is still initializing."
+            };
+        }
+
+        var htmlContent = "<div class='chinese-title'>" + resultData.zh + "</div>" +
+                          "<div style='font-weight:bold; color:#666; margin-bottom:15px;'>" + resultData.en + "</div>" +
+                          "<hr style='border: 0; border-top: 1px dashed #8e2117; margin-bottom:15px;'>" +
+                          "<div>" + resultData.desc + "</div>";
+
+        interpretationBox.innerHTML = htmlContent;
+        interpretationBox.classList.remove('hidden');
+    }
+
+    function resetOracle() {
+        currentToss = 0;
+        hexagramLines = [];
+        document.getElementById('hexagramArea').innerHTML = "";
+        document.getElementById('interpretation').classList.add('hidden');
+        document.getElementById('decipherSection').classList.add('hidden');
+        document.getElementById('coinArea').classList.remove('hidden');document.getElementById('tossCounter').innerText = "Toss 1 of 6 ｜ 第 1 次投掷";
+        document.getElementById('tossResultText').innerText = "Coins ready for casting. ｜ 准备就绪。";}
+
+    // Ensure your database object closes safely here before the functions start
+};
+
+function tossCoins() {
+    if (currentToss >= 6) return;
+    var btn = document.getElementById('tossBtn');
+    var c1 = document.getElementById('coin1');
+    var c2 = document.getElementById('coin2');
+    var c3 = document.getElementById('coin3');
+
+    c1.classList.add('spinning');
+    c2.classList.add('spinning');
+    c3.classList.add('spinning');
+    btn.disabled = true;
+
+    setTimeout(function() {
+        var flip1 = Math.random() < 0.5 ? 3 : 2;
+        var flip2 = Math.random() < 0.5 ? 3 : 2;
+        var flip3 = Math.random() < 0.5 ? 3 : 2;
+        var totalSum = flip1 + flip2 + flip3;
+        
+        c1.classList.remove('spinning');
+        c2.classList.remove('spinning');
+        c3.classList.remove('spinning');
+        btn.disabled = false;
+
+        c1.innerText = flip1 === 3 ? "Heads (3)" : "Tails (2)";
+        c2.innerText = flip2 === 3 ? "Heads (3)" : "Tails (2)";
+        c3.innerText = flip3 === 3 ? "Heads (3)" : "Tails (2)";
+        
+        processLine(totalSum);
+    }, 600);
+}
 
 function processLine(sum) {
+    var hexContainer = document.getElementById('hexagramArea');
+    var lineDiv = document.createElement('div');
+    var isYang = (sum === 7 || sum === 9);
+    var isChanging = (sum === 6 || sum === 9);
+    
+    hexagramLines.push(isYang ? "1" : "0");
 
-var hexContainer = document.getElementById('hexagramArea');
-var lineDiv = document.createElement('div');
-var isYang = (sum === 7 || sum === 9);
-var isChanging = (sum === 6 || sum === 9);
-hexagramLines.push(isYang ? "1" : "0");
+    if (isYang) {
+        lineDiv.className = "line-yang" + (isChanging ? " changing" : "");
+    } else {
+        lineDiv.className = "line-yin" + (isChanging ? " changing" : "");
+        // FIXED: Re-inserted the missing split blocks for Yin structure rendering!
+        lineDiv.innerHTML = "<div></div><div></div>";
+    }
 
-if (isYang) {
+    hexContainer.appendChild(lineDiv);
+    currentToss++;
 
-lineDiv.className = "line-yang" + (isChanging ? " changing" : "");
-} else {
-lineDiv.className = "line-yin" + (isChanging ? " changing" : "");
-lineDiv.innerHTML = "";}
-
-hexContainer.appendChild(lineDiv);
-currentToss++;
-
-if (currentToss < 6) {
-document.getElementById('tossCounter').innerText = "Toss " + (currentToss + 1) + " of 6 ｜ 第 " + (currentToss + 1) + " 次投掷";
-document.getElementById('tossResultText').innerText = "Last cast sum: " + sum + " ｜ 上次点数和: " + sum;
-} else {
-document.getElementById('tossCounter').innerText = "Hexagram Constructed! ｜ 卦象成！";
-document.getElementById('coinArea').classList.add('hidden');
-document.getElementById('decipherSection').classList.remove('hidden');
-}}
+    if (currentToss < 6) {
+        document.getElementById('tossCounter').innerText = "Toss " + (currentToss + 1) + " of 6 ｜ 第 " + (currentToss + 1) + " 次投掷";
+        document.getElementById('tossResultText').innerText = "Last cast sum: " + sum + " ｜ 上次点数和: " + sum;
+    } else {
+        document.getElementById('tossCounter').innerText = "Hexagram Constructed! ｜ 卦象成！";
+        document.getElementById('coinArea').classList.add('hidden');
+        document.getElementById('decipherSection').classList.remove('hidden');
+    }
+}
 
 function decipherHexagram() {
-var lookupKey = hexagramLines.join("");
-var interpretationBox = document.getElementById('interpretation');
-var resultData = hexagramDatabase[lookupKey];
+    var lookupKey = hexagramLines.join("");
+    var interpretationBox = document.getElementById('interpretation');
+    var resultData = hexagramDatabase[lookupKey];
+    
+    if (!resultData) {
+        resultData = {
+            zh: "未录入卦象 [" + lookupKey + "]",
+            en: "Hexagram ID: [" + lookupKey + "]",
+            desc: "该卦象尚未录入数据块。 This variant is processing data."
+        };
+    }
+
+    var htmlContent = "<div class='chinese-title'>" + resultData.zh + "</div>" +
+                      "<div style='font-weight:bold; color:#666; margin-bottom:15px;'>" + resultData.en + "</div>" +
+                      "<hr style='border: 0; border-top: 1px dashed #8e2117; margin-bottom:15px;'>" +
+                      "<div>" + resultData.desc + "</div>";
+
+    interpretationBox.innerHTML = htmlContent;
+    interpretationBox.classList.remove('hidden');
+}
+

@@ -5,16 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>易经三钱占卜</title>
   <style>
-    :root { --primary:#4F46E5; --success:#10B981; --danger:#EF4444; --gray:#6B7280; --ink:#1F2937; }
+    :root { --primary:#4F46E5; --success:#10B981; --danger:#EF4444; --gray:#6B7280; --ink:#1F2937; --gold:#F59E0B; }
     body { font-family: system-ui, -apple-system, sans-serif; background:#F3F4F6; margin:0; padding:20px; color:var(--ink); text-align:center; }
-    .card { max-width:620px; margin:20px auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 4px 8px rgba(0,0,0,.08); }
+    .card { max-width:640px; margin:20px auto; background:#fff; padding:24px; border-radius:14px; box-shadow:0 4px 8px rgba(0,0,0,.08); }
     h1 { color:var(--primary); margin-top:0; }
     button { background:var(--primary); color:white; border:0; border-radius:8px; padding:12px 18px; font-size:16px; font-weight:700; cursor:pointer; width:90%; margin:8px 0; }
-    button.secondary { background:var(--success); }
+    button:disabled { background:#D1D5DB; color:var(--gray); cursor:not-allowed; }
     button.danger { background:var(--danger); }
     textarea { width:90%; min-height:80px; border:1px solid #d1d5db; border-radius:8px; padding:10px; font-size:15px; }
     .hidden { display:none !important; }
     .small { color:var(--gray); font-size:14px; }
+    .ritual-box { background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:16px; margin:16px 0; }
+    .progress { font-weight:800; color:var(--primary); font-size:18px; margin:6px 0; }
+    .coin-stage { display:flex; justify-content:center; gap:14px; margin:18px 0; }
+    .coin { width:62px; height:62px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; border:3px solid #D1D5DB; background:#fff; color:#374151; box-shadow:0 2px 5px rgba(0,0,0,.12); }
+    .coin.flipping { animation: flip .22s linear infinite; background:#FEF3C7; border-color:var(--gold); }
+    .coin.head { background:#FEF3C7; border-color:var(--gold); color:#92400E; }
+    .coin.tail { background:#E0E7FF; border-color:#818CF8; color:#3730A3; }
+    @keyframes flip { 0% { transform: rotateY(0deg) scale(1); } 50% { transform: rotateY(90deg) scale(1.08); } 100% { transform: rotateY(180deg) scale(1); } }
     .hex-wrap { display:flex; gap:18px; justify-content:center; align-items:flex-start; flex-wrap:wrap; margin:16px 0; }
     .hex-box { background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:14px; min-width:220px; }
     .line { height:18px; margin:8px auto; display:flex; justify-content:center; align-items:center; gap:12px; }
@@ -22,27 +30,45 @@
     .broken { display:flex; gap:18px; }
     .broken span { width:56px; height:12px; background:#111827; border-radius:3px; display:inline-block; }
     .changing { color:#EF4444; font-weight:700; font-size:13px; min-width:38px; text-align:left; }
+    .empty-line { width:130px; height:12px; border:1px dashed #D1D5DB; border-radius:3px; }
     .result { text-align:left; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:14px; margin-top:14px; }
-    .coins { font-size:20px; line-height:1.8; text-align:left; display:inline-block; }
+    .log { text-align:left; display:inline-block; line-height:1.8; }
     .tag { display:inline-block; background:#EEF2FF; color:#3730A3; border-radius:999px; padding:4px 10px; font-size:13px; font-weight:700; margin:3px; }
     .section { background:#FFFFFF; border:1px solid #E5E7EB; border-radius:10px; padding:14px; margin:12px 0; }
     .section h3 { margin-top:0; color:var(--primary); }
     .section-title { display:inline-block; background:#EEF2FF; color:#3730A3; border-radius:999px; padding:4px 10px; font-size:13px; font-weight:700; margin-bottom:8px; }
     .muted { color:var(--gray); }
+    hr { margin:18px 0; border:0; border-top:1px solid #E5E7EB; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>☯ 易经三钱占卜</h1>
-    <p class="small">静心提出一个问题，然后投三枚硬币六次。第一爻在最下方，第六爻在最上方。</p>
+    <p class="small">静心提出一个问题。传统三钱法需要投三枚硬币六次：初爻在最下方，上爻在最上方。</p>
     <textarea id="questionInput" placeholder="可选：写下你的问题，例如：这件事情下一步该如何判断？"></textarea>
-    <button id="tossBtn">投三枚硬币 × 六次</button>
-    <button id="resetBtn" class="danger">重新开始</button>
+
+    <div id="ritualArea" class="ritual-box">
+      <div class="progress" id="progressText">准备开始</div>
+      <div class="small" id="instructionText">点击下方按钮，每次投三枚硬币，完成六次后自动生成卦象。</div>
+      <div class="coin-stage">
+        <div class="coin" id="coin1">—</div>
+        <div class="coin" id="coin2">—</div>
+        <div class="coin" id="coin3">—</div>
+      </div>
+      <button id="tossBtn">第 1 次：投三枚硬币</button>
+      <button id="resetBtn" class="danger">重新开始</button>
+    </div>
+
+    <div class="hex-box">
+      <h3>目前卦象</h3>
+      <div id="growingHex"></div>
+    </div>
 
     <div id="status" class="small"></div>
-    <div id="coinLog" class="coins"></div>
+    <div id="coinLog" class="log"></div>
 
     <div id="resultArea" class="hidden">
+      <hr />
       <div class="hex-wrap">
         <div class="hex-box">
           <h3>本卦：<span id="primaryName">---</span></h3>
@@ -141,12 +167,19 @@
   "010101": "64"
 };
 
+    const lines = [];
+    const tossLogs = [];
+    let isAnimating = false;
+
     const statusEl = document.getElementById('status');
     const coinLog = document.getElementById('coinLog');
     const resultArea = document.getElementById('resultArea');
+    const tossBtn = document.getElementById('tossBtn');
+    const progressText = document.getElementById('progressText');
+    const instructionText = document.getElementById('instructionText');
+    const coinEls = [document.getElementById('coin1'), document.getElementById('coin2'), document.getElementById('coin3')];
 
     function coin() {
-      // 正面 = 3，反面 = 2。总数 6/7/8/9。
       return Math.random() < 0.5 ? { label:'正', value:3 } : { label:'反', value:2 };
     }
 
@@ -161,18 +194,30 @@
       const main = line.yang
         ? '<div class="solid"></div>'
         : '<div class="broken"><span></span><span></span></div>';
-      const marker = markChanging && line.changing ? `<span class="changing">变</span>` : '<span class="changing"></span>';
+      const marker = markChanging && line.changing ? '<span class="changing">变</span>' : '<span class="changing"></span>';
       return `<div class="line">${main}${marker}</div>`;
     }
 
-    function renderHexagram(containerId, lines, markChanging=false) {
-      // lines 是由下往上，显示时要由上往下。
-      const html = [...lines].reverse().map(line => renderLine(line, markChanging)).join('');
+    function renderEmptyLine() {
+      return '<div class="line"><div class="empty-line"></div><span class="changing"></span></div>';
+    }
+
+    function renderGrowingHexagram() {
+      const html = [];
+      for (let displayIndex = 5; displayIndex >= 0; displayIndex--) {
+        const line = lines[displayIndex];
+        html.push(line ? renderLine(line, true) : renderEmptyLine());
+      }
+      document.getElementById('growingHex').innerHTML = html.join('');
+    }
+
+    function renderHexagram(containerId, sourceLines, markChanging=false) {
+      const html = [...sourceLines].reverse().map(line => renderLine(line, markChanging)).join('');
       document.getElementById(containerId).innerHTML = html;
     }
 
-    function bitsFromLines(lines, changed=false) {
-      return lines.map(line => {
+    function bitsFromLines(sourceLines, changed=false) {
+      return sourceLines.map(line => {
         const yang = changed ? line.changedYang : line.yang;
         return yang ? '1' : '0';
       }).join('');
@@ -188,7 +233,7 @@
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
-        .replaceAll('\"', '&quot;')
+        .replaceAll('"', '&quot;')
         .replaceAll("'", '&#039;');
     }
 
@@ -203,92 +248,140 @@
       };
     }
 
-    document.getElementById('tossBtn').addEventListener('click', async () => {
+    function updateProgress() {
+      const next = lines.length + 1;
+      if (lines.length < 6) {
+        progressText.textContent = `第 ${next} / 6 次掷币`;
+        tossBtn.textContent = `第 ${next} 次：投三枚硬币`;
+      } else {
+        progressText.textContent = '六爻已成';
+        tossBtn.textContent = '已完成';
+        tossBtn.disabled = true;
+      }
+    }
+
+    function setCoinsFlipping() {
+      coinEls.forEach(el => {
+        el.textContent = '翻';
+        el.className = 'coin flipping';
+      });
+    }
+
+    function revealCoins(coins) {
+      coinEls.forEach((el, idx) => {
+        const c = coins[idx];
+        el.textContent = c.label;
+        el.className = c.label === '正' ? 'coin head' : 'coin tail';
+      });
+    }
+
+    async function finishReading() {
+      statusEl.textContent = '正在读取卦辞...';
+      const primaryBits = bitsFromLines(lines, false);
+      const changedBits = bitsFromLines(lines, true);
+      const primaryNo = bitsToHexagramNumber[primaryBits];
+      const changedNo = bitsToHexagramNumber[changedBits];
+
+      const [primaryRaw, changedRaw] = await Promise.all([
+        fetchHexagram(primaryNo), fetchHexagram(changedNo)
+      ]);
+      const primary = primaryRaw || fallback(primaryNo);
+      const changed = changedRaw || fallback(changedNo);
+
+      document.getElementById('primaryName').innerText = `${primary.number}. ${primary.fullName || primary.name}`;
+      document.getElementById('changedName').innerText = `${changed.number}. ${changed.fullName || changed.name}`;
+
+      renderHexagram('primaryHex', lines, true);
+      const changedLines = lines.map(line => ({ ...line, yang: line.changedYang, changing:false }));
+      renderHexagram('changedHex', changedLines, false);
+
+      const changingLineNos = lines
+        .map((line, idx) => line.changing ? idx + 1 : null)
+        .filter(Boolean);
+
+      document.getElementById('changingLinesBox').innerHTML = changingLineNos.length
+        ? `<div>${changingLineNos.map(n => `<span class="tag">第 ${n} 爻变</span>`).join('')}</div>`
+        : '<div><span class="tag">无变爻</span></div>';
+
+      const lineReadings = changingLineNos.map(n => {
+        const text = primary.lineMeanings?.[String(n)] || '此爻暂无资料。';
+        return `<li><strong>第 ${n} 爻：</strong>${escapeHtml(text)}</li>`;
+      }).join('');
+
+      const question = document.getElementById('questionInput').value.trim();
+      const hasChangingLines = changingLineNos.length > 0;
+      const isSameHexagram = primaryNo === changedNo;
+
+      document.getElementById('readingBox').innerHTML = `
+        ${question ? `<p><strong>所问：</strong>${escapeHtml(question)}</p>` : ''}
+
+        <div class="section">
+          <div class="section-title">① 本卦解读：当前处境</div>
+          <h3>${escapeHtml(primary.number)}. ${escapeHtml(primary.fullName || primary.name)}</h3>
+          <p><strong>卦意：</strong>${escapeHtml(primary.modernMeaning || primary.judgment || '')}</p>
+          <p><strong>卦辞简释：</strong>${escapeHtml(primary.judgment || '')}</p>
+          <p class="muted">本卦代表事情目前的状态、当下的气势，以及你现在面对的主要处境。</p>
+        </div>
+
+        <div class="section">
+          <div class="section-title">② 变爻解读：关键转折</div>
+          ${hasChangingLines
+            ? `<p>${changingLineNos.map(n => `<span class="tag">第 ${n} 爻变</span>`).join('')}</p><ul>${lineReadings}</ul><p class="muted">变爻代表事情中最活跃、最容易变化的关键位置，可作为行动提醒。</p>`
+            : '<p><strong>无变爻：</strong>此卦象较稳定，事情暂时没有明显转折，可主要参考本卦整体卦意。</p>'
+          }
+        </div>
+
+        <div class="section">
+          <div class="section-title">③ 之卦解读：发展方向</div>
+          <h3>${escapeHtml(changed.number)}. ${escapeHtml(changed.fullName || changed.name)}</h3>
+          ${isSameHexagram
+            ? '<p>本次无变爻，因此本卦与之卦相同。</p>'
+            : `<p><strong>趋势：</strong>${escapeHtml(changed.modernMeaning || changed.judgment || '')}</p><p><strong>卦辞简释：</strong>${escapeHtml(changed.judgment || '')}</p>`
+          }
+          <p class="muted">之卦代表事情经过变化之后可能走向的趋势，不宜当成绝对结果，而应视为方向提示。</p>
+        </div>
+      `;
+
+      resultArea.classList.remove('hidden');
+      statusEl.textContent = '完成。';
+      instructionText.textContent = '本次占卜完成。可以查看本卦、变爻与之卦解读。';
+    }
+
+    tossBtn.addEventListener('click', async () => {
+      if (isAnimating || lines.length >= 6) return;
       try {
-        statusEl.textContent = '正在起卦...';
-        coinLog.innerHTML = '';
+        isAnimating = true;
+        tossBtn.disabled = true;
         resultArea.classList.add('hidden');
+        statusEl.textContent = '三枚硬币正在翻转...';
+        setCoinsFlipping();
 
-        const lines = [];
-        const logs = [];
-        for (let i = 1; i <= 6; i++) {
-          const coins = [coin(), coin(), coin()];
-          const total = coins.reduce((sum, c) => sum + c.value, 0);
-          const line = lineFromTotal(total);
-          lines.push(line);
-          logs.push(`第 ${i} 爻：${coins.map(c => c.label).join('、')} → ${total} → ${line.label}${line.changing ? '（变爻）' : ''}`);
+        const coins = [coin(), coin(), coin()];
+        await new Promise(resolve => setTimeout(resolve, 750));
+        revealCoins(coins);
+
+        const total = coins.reduce((sum, c) => sum + c.value, 0);
+        const line = lineFromTotal(total);
+        lines.push(line);
+
+        const n = lines.length;
+        tossLogs.push(`第 ${n} 爻：${coins.map(c => c.label).join('、')} → ${total} → ${line.label}${line.changing ? '（变爻）' : ''}`);
+        coinLog.innerHTML = tossLogs.map(x => `<div>${x}</div>`).join('');
+        renderGrowingHexagram();
+        statusEl.textContent = `第 ${n} 爻完成：${line.value}（${line.label}）${line.changing ? '，此爻会变。' : ''}`;
+
+        isAnimating = false;
+        updateProgress();
+
+        if (lines.length === 6) {
+          await finishReading();
+        } else {
+          tossBtn.disabled = false;
         }
-        coinLog.innerHTML = logs.map(x => `<div>${x}</div>`).join('');
-
-        const primaryBits = bitsFromLines(lines, false);
-        const changedBits = bitsFromLines(lines, true);
-        const primaryNo = bitsToHexagramNumber[primaryBits];
-        const changedNo = bitsToHexagramNumber[changedBits];
-
-        const [primaryRaw, changedRaw] = await Promise.all([
-          fetchHexagram(primaryNo), fetchHexagram(changedNo)
-        ]);
-        const primary = primaryRaw || fallback(primaryNo);
-        const changed = changedRaw || fallback(changedNo);
-
-        document.getElementById('primaryName').innerText = `${primary.number}. ${primary.fullName || primary.name}`;
-        document.getElementById('changedName').innerText = `${changed.number}. ${changed.fullName || changed.name}`;
-
-        renderHexagram('primaryHex', lines, true);
-        const changedLines = lines.map(line => ({ ...line, yang: line.changedYang, changing:false }));
-        renderHexagram('changedHex', changedLines, false);
-
-        const changingLineNos = lines
-          .map((line, idx) => line.changing ? idx + 1 : null)
-          .filter(Boolean);
-
-        document.getElementById('changingLinesBox').innerHTML = changingLineNos.length
-          ? `<div>${changingLineNos.map(n => `<span class="tag">第 ${n} 爻变</span>`).join('')}</div>`
-          : `<div><span class="tag">无变爻</span></div>`;
-
-        const lineReadings = changingLineNos.map(n => {
-          const text = primary.lineMeanings?.[String(n)] || '此爻暂无资料。';
-          return `<li><strong>第 ${n} 爻：</strong>${escapeHtml(text)}</li>`;
-        }).join('');
-
-        const question = document.getElementById('questionInput').value.trim();
-        const hasChangingLines = changingLineNos.length > 0;
-        const isSameHexagram = primaryNo === changedNo;
-
-        document.getElementById('readingBox').innerHTML = `
-          ${question ? `<p><strong>所问：</strong>${escapeHtml(question)}</p>` : ''}
-
-          <div class="section">
-            <div class="section-title">① 本卦解读：当前处境</div>
-            <h3>${escapeHtml(primary.number)}. ${escapeHtml(primary.fullName || primary.name)}</h3>
-            <p><strong>卦意：</strong>${escapeHtml(primary.modernMeaning || primary.judgment || '')}</p>
-            <p><strong>卦辞简释：</strong>${escapeHtml(primary.judgment || '')}</p>
-            <p class="muted">本卦代表事情目前的状态、当下的气势，以及你现在面对的主要处境。</p>
-          </div>
-
-          <div class="section">
-            <div class="section-title">② 变爻解读：关键转折</div>
-            ${hasChangingLines
-              ? `<p>${changingLineNos.map(n => `<span class="tag">第 ${n} 爻变</span>`).join('')}</p><ul>${lineReadings}</ul><p class="muted">变爻代表事情中最活跃、最容易变化的关键位置，可作为行动提醒。</p>`
-              : `<p><strong>无变爻：</strong>此卦象较稳定，事情暂时没有明显转折，可主要参考本卦整体卦意。</p>`
-            }
-          </div>
-
-          <div class="section">
-            <div class="section-title">③ 之卦解读：发展方向</div>
-            <h3>${escapeHtml(changed.number)}. ${escapeHtml(changed.fullName || changed.name)}</h3>
-            ${isSameHexagram
-              ? `<p>本次无变爻，因此本卦与之卦相同。</p>`
-              : `<p><strong>趋势：</strong>${escapeHtml(changed.modernMeaning || changed.judgment || '')}</p><p><strong>卦辞简释：</strong>${escapeHtml(changed.judgment || '')}</p>`
-            }
-            <p class="muted">之卦代表事情经过变化之后可能走向的趋势，不宜当成绝对结果，而应视为方向提示。</p>
-          </div>
-        `;
-
-        resultArea.classList.remove('hidden');
-        statusEl.textContent = '完成。';
       } catch (err) {
         console.error(err);
+        isAnimating = false;
+        tossBtn.disabled = false;
         statusEl.textContent = '出错：' + err.message;
         alert('起卦失败：' + err.message);
       }
@@ -297,6 +390,9 @@
     document.getElementById('resetBtn').addEventListener('click', () => {
       window.location.reload();
     });
+
+    renderGrowingHexagram();
+    updateProgress();
   </script>
 </body>
 </html>
